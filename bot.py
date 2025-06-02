@@ -6,6 +6,9 @@ from telegram.ext import CallbackQueryHandler
 import os
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")  # e.g., https://koekysymysbotti.onrender.com
+WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
+WEBHOOK_URL = f"{RENDER_EXTERNAL_URL}{WEBHOOK_PATH}"
 
 
 # Load questions at startup
@@ -134,12 +137,30 @@ async def lopeta(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Olet lopettanut kyselysession. Kirjoita /start aloittaaksesi uudelleen."
     )
+
+app = ApplicationBuilder().token(BOT_TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("kysymys", kysymys))
+app.add_handler(CommandHandler("lopeta", lopeta))
+app.add_handler(CallbackQueryHandler(button_handler))
+
+@flask_app.route(WEBHOOK_PATH, methods=["POST"])
+async def webhook():
+    update = Update.de_json(request.get_json(force=True), app.bot)
+    await app.update_queue.put(update)
+    return "OK"
+
+
 if __name__ == "__main__":
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    import asyncio
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("kysymys", kysymys))
-    app.add_handler(CommandHandler("lopeta", lopeta))
-    app.add_handler(CallbackQueryHandler(button_handler))
+    async def main():
+        await app.bot.set_webhook(url=WEBHOOK_URL)
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=10000,
+            webhook_url=WEBHOOK_URL,
+            flask_app=flask_app
+        )
 
-    app.run_polling()
+    asyncio.run(main())

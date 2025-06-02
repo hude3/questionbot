@@ -3,6 +3,9 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackQueryHandler
+import os
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 
 # Load questions at startup
@@ -132,7 +135,7 @@ async def lopeta(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Olet lopettanut kyselysession. Kirjoita /start aloittaaksesi uudelleen."
     )
 if __name__ == "__main__":
-    app = ApplicationBuilder().token("8028971638:AAFIixg813k7SnSpMT2Y9_AprGZv0KfnMnM").build()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("kysymys", kysymys))

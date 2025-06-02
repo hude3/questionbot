@@ -8,7 +8,7 @@ from telegram.ext import (
 
 # Load environment variables
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")  # e.g., https://your-bot-name.onrender.com
+RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
 WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
 WEBHOOK_URL = f"{RENDER_EXTERNAL_URL}{WEBHOOK_PATH}"
 
@@ -16,10 +16,10 @@ WEBHOOK_URL = f"{RENDER_EXTERNAL_URL}{WEBHOOK_PATH}"
 questions_df = pd.read_csv("Kysymyspaketti.csv", encoding="latin1")
 user_states = {}
 
-# Define Flask app FIRST
+# Flask app
 flask_app = Flask(__name__)
 
-# Build Telegram bot application
+# Telegram bot app
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 # --- HANDLERS ---
@@ -65,7 +65,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = "✅ Oikein!" if user_answer == correct_answer else f"❌ Väärin! Oikea vastaus oli {correct_answer}."
     await context.bot.send_message(chat_id=user_id, text=f"{result}\n\nSelitys: {explanation}\nLähde: {citation}")
 
-    # Move to next question
     user_states[user_id] = index + 1
 
     if user_states[user_id] < len(questions_df):
@@ -87,24 +86,28 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("kysymys", kysymys))
 app.add_handler(CallbackQueryHandler(button_handler))
 
-# Webhook endpoint
+# Webhook route
 @flask_app.route(WEBHOOK_PATH, methods=["POST"])
-async def webhook():
+def webhook():
     update = Update.de_json(request.get_json(force=True), app.bot)
-    await app.update_queue.put(update)
+    app.update_queue.put_nowait(update)
     return "OK"
 
-# Run the bot with webhook
+# Start everything
 if __name__ == "__main__":
     import asyncio
+    import threading
 
     async def main():
         await app.bot.set_webhook(url=WEBHOOK_URL)
-        app.run_webhook(
-            listen="0.0.0.0",
-            port=10000,
-            webhook_url=WEBHOOK_URL,
-            flask_app=flask_app
-        )
+        await app.initialize()
+        await app.start()
 
+    def run_flask():
+        flask_app.run(host="0.0.0.0", port=10000)
+
+    # Start Flask in its own thread
+    threading.Thread(target=run_flask).start()
+
+    # Start the bot in the main thread
     asyncio.run(main())

@@ -5,6 +5,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 )
+from telegram.ext import MessageHandler, filters
 
 # Load environment variables
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -80,16 +81,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text=f"Kysymys {user_states[user_id] + 1}:\n{next_question}",
             reply_markup=reply_markup
         )
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("Message received:", update.message.text)
+    await update.message.reply_text("✅ Bot is alive and got your message!")
 
 # Register handlers
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("kysymys", kysymys))
 app.add_handler(CallbackQueryHandler(button_handler))
+app.add_handler(MessageHandler(filters.ALL, echo))
 
 # Webhook route
 @flask_app.route(WEBHOOK_PATH, methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), app.bot)
+    print("Webhook called:", request.get_json(force=True))
     app.update_queue.put_nowait(update)
     return "OK"
 

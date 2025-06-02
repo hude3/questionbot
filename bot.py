@@ -108,7 +108,7 @@ if __name__ == "__main__":
         await app.bot.set_webhook(url=WEBHOOK_URL)
         await app.initialize()
         await app.start()
-        await app.updater.start_polling()
+        
 
     def run_flask():
         flask_app.run(host="0.0.0.0", port=10000)

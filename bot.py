@@ -78,9 +78,21 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("Message received:", update.message.text)
     await update.message.reply_text("✅ Bot is alive and got your message!")
 
+async def lopeta(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    # Remove the user’s state completely
+    if user_id in user_states:
+        del user_states[user_id]
+
+    await update.message.reply_text(
+        "Olet lopettanut kyselysession. Kirjoita /start aloittaaksesi uudelleen."
+    )
+
 # Register handlers
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("kysymys", kysymys))
+app.add_handler(CommandHandler("lopeta", lopeta))
 app.add_handler(CallbackQueryHandler(button_handler))
 app.add_handler(MessageHandler(filters.ALL, echo))
 
